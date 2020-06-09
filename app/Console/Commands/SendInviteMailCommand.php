@@ -7,18 +7,17 @@ namespace App\Console\Commands;
 use App\Helpers\CsvHelper;
 use App\Jobs\SendInviteMailJob;
 use App\Mail\InviteMail;
-use App\Services\NotifyAgentFactory;
-use App\Services\SlackNotify;
+use App\Services\NotifyService\NotifyAgentFactory;
+use App\Services\NotifyService\SlackNotify;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use ParseCsv\Csv;
 
 class SendInviteMailCommand extends Command
 {
-    const CONNECTION_NAME = 'beanstalkd';
-    const QUEUE_NAME      = 'invite_mails';
+    const CONNECTION_NAME    = 'beanstalkd';
+    const QUEUE_NAME         = 'invite_mails';
     const UPLOAD_SUCCESS_MSG = 'File uploaded successfully';
-    const UPLOAD_FAILED_MSG = 'File uploaded failed';
+    const UPLOAD_FAILED_MSG  = 'File uploaded failed';
 
     /**
      * The name and signature of the console command.
@@ -45,9 +44,7 @@ class SendInviteMailCommand extends Command
     }
 
     /**
-     * Execute the console command.
-     *
-     * @return mixed
+     * @throws \Exception
      */
     public function handle()
     {
@@ -61,16 +58,18 @@ class SendInviteMailCommand extends Command
                 $this->sendUploadedMessage($message);
 
                 //get emails from csv
-                $departureDate = Carbon::today()->addWeek()->format('Y-m-d');
-                $travelersForInviting = CsvHelper::searchByField($csv, 'departure_date', $departureDate);
-                $emails = array_column($travelersForInviting, 'traveler_email');
+                if($csv) {
+                    $departureDate = Carbon::today()->addWeek()->format('Y-m-d');
+                    $travelersForInviting = CsvHelper::searchByField($csv, 'departure_date', $departureDate);
+                    $emails = array_column($travelersForInviting, 'traveler_email');
 
-                // add mails to queue
-                $inviteMail = new InviteMail();
-                foreach ($emails as $email) {
-                    SendInviteMailJob::dispatch($inviteMail, $email)
-                        ->onConnection(self::CONNECTION_NAME)
-                        ->onQueue(self::QUEUE_NAME);
+                    // add mails to queue
+                    $inviteMail = new InviteMail();
+                    foreach ($emails as $email) {
+                        SendInviteMailJob::dispatch($inviteMail, $email)
+                            ->onConnection(self::CONNECTION_NAME)
+                            ->onQueue(self::QUEUE_NAME);
+                    }
                 }
             } else {
                 $this->sendUploadedMessage(self::UPLOAD_FAILED_MSG);
@@ -95,7 +94,6 @@ class SendInviteMailCommand extends Command
             $slackNotify->setTo(env('SLACK_CHANNEL_ID'));
             $slackNotify->setContent($message);
             $slackNotify->sendMessage();
-
         } catch (\Exception $exception) {
             throw new \Exception($exception->getMessage());
         }

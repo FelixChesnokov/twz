@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Services\NotifyAgentFactory;
-use App\Services\SlackNotify;
+use App\Services\NotifyService\NotifyAgentFactory;
+use App\Services\NotifyService\SlackNotify;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
