@@ -41,10 +41,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Send message to admin
      *
-     * @param $content
+     * @param string $content
      * @throws \Exception
      */
-    private function notifyAgent($content)
+    private function notifyAgent(string $content)
     {
         $slackNotify = (new NotifyAgentFactory())->factory(SlackNotify::SERVICE_NAME);
 

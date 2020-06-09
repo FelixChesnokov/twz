@@ -17,6 +17,8 @@ class SendInviteMailCommand extends Command
 {
     const CONNECTION_NAME = 'beanstalkd';
     const QUEUE_NAME      = 'invite_mails';
+    const UPLOAD_SUCCESS_MSG = 'File uploaded successfully';
+    const UPLOAD_FAILED_MSG = 'File uploaded failed';
 
     /**
      * The name and signature of the console command.
@@ -55,7 +57,8 @@ class SendInviteMailCommand extends Command
             if(is_file($filepath) && is_readable($filepath)) {
                 $csv = CsvHelper::parseCsv($filepath);
 
-                $this->sendUploadedMessage($csv);
+                $message = $csv ? self::UPLOAD_SUCCESS_MSG : self::UPLOAD_FAILED_MSG;
+                $this->sendUploadedMessage($message);
 
                 //get emails from csv
                 $departureDate = Carbon::today()->addWeek()->format('Y-m-d');
@@ -70,10 +73,10 @@ class SendInviteMailCommand extends Command
                         ->onQueue(self::QUEUE_NAME);
                 }
             } else {
-                $this->sendUploadedMessage();
+                $this->sendUploadedMessage(self::UPLOAD_FAILED_MSG);
             }
         } catch (\Exception $exception) {
-            $this->sendUploadedMessage();
+            $this->sendUploadedMessage(self::UPLOAD_FAILED_MSG);
             throw new \Exception($exception->getMessage());
         }
     }
@@ -81,17 +84,16 @@ class SendInviteMailCommand extends Command
     /**
      * Send message to admin
      *
-     * @param Csv|null $csv
+     * @param string $message
      * @throws \Exception
      */
-    private function sendUploadedMessage(Csv $csv = null)
+    private function sendUploadedMessage(string $message)
     {
         try {
             $slackNotify = (new NotifyAgentFactory())->factory(SlackNotify::SERVICE_NAME);
-            $content = $csv ? 'File uploaded successfully' : 'File uploaded failed';
 
             $slackNotify->setTo(env('SLACK_CHANNEL_ID'));
-            $slackNotify->setContent($content);
+            $slackNotify->setContent($message);
             $slackNotify->sendMessage();
 
         } catch (\Exception $exception) {
