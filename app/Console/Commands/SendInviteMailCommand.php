@@ -57,7 +57,6 @@ class SendInviteMailCommand extends Command
                 $message = $csv ? self::UPLOAD_SUCCESS_MSG : self::UPLOAD_FAILED_MSG;
                 $this->sendUploadedMessage($message);
 
-                //get emails from csv
                 if($csv) {
                     $departureDate = Carbon::today()->addWeek()->format('Y-m-d');
                     $travelersForInviting = CsvHelper::searchByField($csv, 'departure_date', $departureDate);
